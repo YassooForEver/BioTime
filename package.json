@@ -1,6 +1,7 @@
 {
   "name": "biotime-sap-dashboard",
   "version": "1.0.0",
+  "description": "Professional Dashboard for BioTime to SAP Integration",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

@@ -260,29 +260,3 @@ tr:hover td { background: rgba(0, 122, 255, 0.03); }
     padding: 25px;
     height: 300px;
 }
-/* --- تخصيص شكل التقويم (Flatpickr) --- */
-.flatpickr-calendar {
-    background: rgba(255, 255, 255, 0.9) !important;
-    backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.5) !important;
-    border-radius: 20px !important;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.1) !important;
-    font-family: 'Inter', sans-serif !important;
-}
-
-.flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange, .flatpickr-day.selected.inRange, .flatpickr-day.startRange.inRange, .flatpickr-day.endRange.inRange, .flatpickr-day.focus {
-    background: var(--primary) !important;
-    border-color: var(--primary) !important;
-    box-shadow: 0 4px 15px rgba(0, 122, 255, 0.4) !important;
-}
-
-.flatpickr-day.inRange {
-    background: rgba(0, 122, 255, 0.1) !important;
-    border-color: transparent !important;
-    box-shadow: -5px 0 0 #e6f2ff, 5px 0 0 #e6f2ff !important;
-}
-
-.date-selector label {
-    font-weight: 600;
-    color: var(--text-main);
-}

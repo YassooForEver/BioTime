@@ -1,4 +1,3 @@
-// انتظر حتى تحميل الصفحة بالكامل
 document.addEventListener('DOMContentLoaded', function() {
 
     // المتغيرات العامة
@@ -8,26 +7,26 @@ document.addEventListener('DOMContentLoaded', function() {
     let chartInstance = null;
 
     // 1. تشغيل الكليندر (Flatpickr)
-    flatpickr("#dateRange", {
-        mode: "range",              // تفعيل وضع المدى (من - إلى)
-        dateFormat: "Y-m-d",        // صيغة التاريخ
-        defaultDate: [new Date(), new Date()], // الافتراضي: اليوم
-        locale: { rangeSeparator: "  إلى  " }, // الفاصل بين التاريخين
-        onChange: function(selectedDates, dateStr, instance) {
-            if (selectedDates.length > 0) {
-                // ضبط فرق التوقيت
-                const offset = selectedDates[0].getTimezoneOffset() * 60000;
-                startDate = new Date(selectedDates[0].getTime() - offset).toISOString().split('T')[0];
-                
-                if (selectedDates.length === 2) {
-                    endDate = new Date(selectedDates[1].getTime() - offset).toISOString().split('T')[0];
-                } else {
-                    endDate = startDate;
+    if (typeof flatpickr !== 'undefined') {
+        flatpickr("#dateRange", {
+            mode: "range",
+            dateFormat: "Y-m-d",
+            defaultDate: [new Date(), new Date()],
+            locale: { rangeSeparator: "  إلى  " },
+            onChange: function(selectedDates, dateStr, instance) {
+                if (selectedDates.length > 0) {
+                    const offset = selectedDates[0].getTimezoneOffset() * 60000;
+                    startDate = new Date(selectedDates[0].getTime() - offset).toISOString().split('T')[0];
+                    
+                    if (selectedDates.length === 2) {
+                        endDate = new Date(selectedDates[1].getTime() - offset).toISOString().split('T')[0];
+                    } else {
+                        endDate = startDate;
+                    }
                 }
-                console.log("Selected:", startDate, "to", endDate);
             }
-        }
-    });
+        });
+    }
 
     // 2. دالة جلب البيانات
     window.fetchData = async function() {
@@ -57,8 +56,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // إظهار القسم المخفي
                 const dash = document.getElementById('dashboardArea');
-                dash.classList.remove('hidden');
-                dash.style.display = 'block'; // تأكيد الإظهار
+                if(dash) {
+                    dash.classList.remove('hidden');
+                    dash.style.display = 'block';
+                }
 
                 updateUI(fullData);
                 populateFilters();
@@ -70,25 +71,31 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (e) { 
             console.error(e);
-            Swal.fire('خطأ', 'تأكد من تشغيل السيرفر (node server.js)', 'error'); 
+            Swal.fire('خطأ في العرض', `التفاصيل: ${e.message}`, 'error'); 
         }
     };
 
     // دوال المساعدة (UI Helpers)
     function updateUI(data) {
-        document.getElementById('totalCount').innerText = data.length;
-        document.getElementById('inCount').innerText = data.filter(x => x.typeCode === 'P10').length;
-        document.getElementById('outCount').innerText = data.filter(x => x.typeCode === 'P20').length;
+        // تحديث العدادات
+        if(document.getElementById('totalCount')) document.getElementById('totalCount').innerText = data.length;
+        if(document.getElementById('inCount')) document.getElementById('inCount').innerText = data.filter(x => x.typeCode === 'P10').length;
+        if(document.getElementById('outCount')) document.getElementById('outCount').innerText = data.filter(x => x.typeCode === 'P20').length;
         
         const tbody = document.getElementById('tableBody');
+        if(!tbody) return;
+        
         tbody.innerHTML = '';
         data.forEach((rec, idx) => {
-            const dateOnly = rec.timestampSAP.split('T')[0];
+            // 🔥 التصحيح هنا: استخدام rawDateTime بدلاً من timestampSAP 🔥
+            // التاريخ بيجي بالشكل "2026-01-27 08:30:00" فبنقسم المسافة
+            const dateOnly = rec.rawDateTime ? rec.rawDateTime.split(' ')[0] : startDate;
+            
             tbody.innerHTML += `
                 <tr>
                     <td><input type="checkbox" class="row-check" checked data-idx="${idx}"></td>
                     <td><b>${rec.employeeName}</b><br><small>${rec.assignmentId}</small></td>
-                    <td>${rec.originalTime}</td>
+                    <td dir="ltr">${rec.originalTime}</td>
                     <td>${dateOnly}</td>
                     <td><span class="badge ${rec.typeCode}">${rec.typeCode === 'P10' ? 'Check In' : 'Check Out'}</span></td>
                     <td>${rec.location}</td>
@@ -99,6 +106,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function populateFilters() {
         const locs = [...new Set(fullData.map(r => r.location))];
         const sel = document.getElementById('filterLocation');
+        if(!sel) return;
+        
         sel.innerHTML = '<option value="all">كل المواقع</option>';
         locs.forEach(l => sel.innerHTML += `<option value="${l}">${l}</option>`);
     }
@@ -138,10 +147,14 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     function renderChart(data) {
-        const ctx = document.getElementById('attendanceChart').getContext('2d');
+        const ctxElement = document.getElementById('attendanceChart');
+        if(!ctxElement) return;
+        
+        const ctx = ctxElement.getContext('2d');
         const days = {};
         data.forEach(d => { 
-            const day = d.timestampSAP.split('T')[0]; 
+            // 🔥 التصحيح هنا أيضاً 🔥
+            const day = d.rawDateTime ? d.rawDateTime.split(' ')[0] : 'Unknown'; 
             days[day] = (days[day] || 0) + 1; 
         });
         
@@ -155,7 +168,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     data: Object.values(days), 
                     borderColor: '#007aff',
                     backgroundColor: 'rgba(0,122,255,0.2)',
-                    fill: true 
+                    fill: true,
+                    tension: 0.4
                 }]
             },
             options: { responsive: true, plugins: { legend: { display: false } } }
